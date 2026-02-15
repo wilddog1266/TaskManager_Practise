@@ -1,0 +1,387 @@
+-e \n===== src/test/java/com/example/Repetition_7/Repetition7ApplicationTests.java =====\n
+package com.example.Repetition_7;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class Repetition7ApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
+-e \n===== src/main/resources/application.properties =====\n
+spring.application.name=Repetition_7
+-e \n===== src/main/java/com/example/Repetition_7/dto/TaskDto.java =====\n
+package com.example.Repetition_7.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class TaskDto {
+
+    private Long id;
+
+    private String title;
+
+    private Boolean completed;
+}
+-e \n===== src/main/java/com/example/Repetition_7/repository/TaskRepository.java =====\n
+package com.example.Repetition_7.repository;
+
+import com.example.Repetition_7.entity.TaskEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
+
+    Page<TaskEntity> findByCompleted(boolean completed);
+
+    Page<TaskEntity> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+
+    Page<TaskEntity> findByTitleContainingIgnoreCaseAndCompleted(String title, boolean completed, Pageable pageable);
+}
+-e \n===== src/main/java/com/example/Repetition_7/entity/TaskEntity.java =====\n
+package com.example.Repetition_7.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "tasks")
+public class TaskEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotNull
+    private String title;
+
+    @NotNull
+    private Boolean completed;
+}
+-e \n===== src/main/java/com/example/Repetition_7/controller/TaskController.java =====\n
+package com.example.Repetition_7.controller;
+
+import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.request.CreateTaskRequest;
+import com.example.Repetition_7.request.UpdateTaskRequest;
+import com.example.Repetition_7.service.TaskService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+import java.util.Set;
+
+@RestController
+@RequestMapping("/api")
+@RequiredArgsConstructor
+public class TaskController {
+
+    private final TaskService taskService;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "title", "completed");
+
+    @GetMapping("/tasks")
+    public Page<TaskDto> getAll(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
+                                Pageable pageable,
+                                @RequestParam (required = false) Boolean completed,
+                                @RequestParam (required = false) String query) {
+        if(pageable.getPageSize() > 50) {
+            throw new IllegalArgumentException("Page size is too large");
+        }
+
+        pageable.getSort().forEach(order -> {
+            String field = order.getProperty();
+            if(!ALLOWED_SORT_FIELDS.contains(field)) {
+                throw new IllegalArgumentException("Sorting by " + field + " is not allowed");
+            }
+        });
+
+        return taskService.search(pageable, completed, query);
+    }
+
+    @PostMapping("/tasks")
+    public ResponseEntity<TaskDto> createNewTask(@Valid @RequestBody CreateTaskRequest request) {
+        TaskDto created = taskService.create(request);
+
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/tasks/{id}")
+    public ResponseEntity<TaskDto> getTaskById(@PathVariable Long id) {
+        if(id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Optional<TaskDto> current = taskService.getById(id);
+
+        if(current.isPresent()) {
+            return ResponseEntity.ok(current.get());
+        }
+
+        return ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping("/tasks/{id}")
+    public ResponseEntity<TaskDto> updateTaskById(@PathVariable Long id, @Valid @RequestBody UpdateTaskRequest request) {
+
+        if (id <= 0 || request == null ||
+                (request.getTitle() == null && request.getCompleted() == null)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Optional<TaskDto> updated = taskService.updateTask(id, request);
+
+        if(updated.isPresent()) {
+            return ResponseEntity.ok(updated.get());
+        }
+
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/tasks/{id}")
+    public ResponseEntity<Void> deleteTaskById(@PathVariable Long id) {
+        if(id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        boolean result = taskService.delete(id);
+
+        if(result) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.notFound().build();
+    }
+
+}
+-e \n===== src/main/java/com/example/Repetition_7/Repetition7Application.java =====\n
+package com.example.Repetition_7;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Repetition7Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(Repetition7Application.class, args);
+	}
+
+}
+-e \n===== src/main/java/com/example/Repetition_7/request/CreateTaskRequest.java =====\n
+package com.example.Repetition_7.request;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class CreateTaskRequest {
+
+    @NotBlank
+    private String title;
+
+    private Boolean completed;
+}
+-e \n===== src/main/java/com/example/Repetition_7/request/UpdateTaskRequest.java =====\n
+package com.example.Repetition_7.request;
+
+import jakarta.validation.constraints.Pattern;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class UpdateTaskRequest {
+
+    @Pattern(regexp = ".*\\S.*", message = "must not be blank")
+    private String title;
+
+    private Boolean completed;
+}
+-e \n===== src/main/java/com/example/Repetition_7/service/TaskService.java =====\n
+package com.example.Repetition_7.service;
+
+import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.entity.TaskEntity;
+import com.example.Repetition_7.repository.TaskRepository;
+import com.example.Repetition_7.request.CreateTaskRequest;
+import com.example.Repetition_7.request.UpdateTaskRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class TaskService {
+
+    private final TaskRepository taskRepository;
+
+    public TaskDto create(CreateTaskRequest request) {
+        TaskEntity entity = toEntity(request);
+
+        TaskEntity saved = taskRepository.save(entity);
+
+        return toDto(saved);
+    }
+
+    public Optional<TaskDto> getById(Long id) {
+        return taskRepository.findById(id).map(this::toDto);
+    }
+
+    public Optional<TaskDto> updateTask(Long id, UpdateTaskRequest request) {
+        Optional<TaskEntity> current = taskRepository.findById(id);
+
+        if(current.isEmpty()) {
+            return Optional.empty();
+        }
+
+        TaskEntity taskEntity = current.get();
+
+        if(request.getCompleted() != null) {
+            taskEntity.setCompleted(request.getCompleted());
+        }
+
+        if(request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            taskEntity.setTitle(request.getTitle());
+        }
+
+        TaskEntity saved = taskRepository.save(taskEntity);
+
+        return Optional.of(toDto(saved));
+    }
+
+    public boolean delete(Long id) {
+        if(taskRepository.existsById(id)) {
+            taskRepository.deleteById(id);
+            return true;
+        }
+
+        return false;
+    }
+
+    public Page<TaskDto> search(Pageable pageable, Boolean completed, String query) {
+        String q = (query == null || query.trim().isEmpty()) ? null : query.trim();
+
+        if(q == null && completed == null) {
+            return taskRepository.findAll(pageable).map(this::toDto);
+        }
+
+        if(q != null && completed == null) {
+            return taskRepository.findByTitleContainingIgnoreCase(q, pageable).map(this::toDto);
+        }
+
+        if(q == null) {
+            return taskRepository.findByCompleted(completed).map(this::toDto);
+        }
+
+        return taskRepository.findByTitleContainingIgnoreCaseAndCompleted(q, completed, pageable).map(this::toDto);
+    }
+
+    private TaskDto toDto(TaskEntity e) {
+        TaskDto taskDto = new TaskDto();
+
+        taskDto.setId(e.getId());
+        taskDto.setTitle(e.getTitle());
+        taskDto.setCompleted(e.getCompleted());
+
+        return taskDto;
+    }
+
+    private TaskEntity toEntity(CreateTaskRequest r) {
+        TaskEntity taskEntity = new TaskEntity();
+
+        taskEntity.setTitle(r.getTitle().trim());
+        taskEntity.setCompleted(r.getCompleted() != null ? r.getCompleted() : false);
+
+        return taskEntity;
+    }
+}
+-e \n===== src/main/java/com/example/Repetition_7/exception/ApiErrorResponse.java =====\n
+package com.example.Repetition_7.exception;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Map;
+
+@Getter
+@Setter
+public class ApiErrorResponse {
+
+    private String message;
+
+    private Map<String, String> errors;
+}
+-e \n===== src/main/java/com/example/Repetition_7/exception/GlobalExceptionHandler.java =====\n
+package com.example.Repetition_7.exception;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        ApiErrorResponse response = new ApiErrorResponse();
+
+        response.setMessage(e.getMessage());
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        ApiErrorResponse response = new ApiErrorResponse();
+
+        response.setMessage("Invalid value for parameter '" + e.getName() + " : " + e.getValue() + "'");
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        ApiErrorResponse response = new ApiErrorResponse();
+        Map<String, String> errors = new HashMap<>();
+
+        for(var error : e.getBindingResult().getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        response.setMessage(e.getMessage());
+        response.setErrors(errors);
+
+        return ResponseEntity.badRequest().body(response);
+    }
+}
