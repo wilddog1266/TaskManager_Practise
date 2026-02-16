@@ -14,6 +14,9 @@ public class TaskMapper {
         taskDto.setId(e.getId());
         taskDto.setTitle(e.getTitle());
         taskDto.setCompleted(e.isCompleted());
+        taskDto.setDescription(e.getDescription());
+        taskDto.setCreatedAt(e.getCreatedAt());
+        taskDto.setUpdatedAt(e.getUpdatedAt());
 
         return taskDto;
     }
@@ -22,8 +25,13 @@ public class TaskMapper {
         TaskEntity taskEntity = new TaskEntity();
 
         taskEntity.setTitle(r.getTitle().trim());
+        taskEntity.setDescription(normalise(r.getDescription()));
         taskEntity.setCompleted(r.getCompleted() != null ? r.getCompleted() : false);
 
         return taskEntity;
+    }
+
+    private String normalise(String description) {
+        return description == null ? null : description.trim();
     }
 }

@@ -9,13 +9,16 @@ import lombok.Setter;
 @Setter
 public class UpdateTaskRequest {
 
-    @Pattern(regexp = ".*\\S.*", message = "must not be blank")
+    @Pattern(regexp = ".*\\S.*", message = "title must not be blank")
     private String title;
+
+    @Pattern(regexp = ".*\\S.*", message = "description must not be blank")
+    private String description;
 
     private Boolean completed;
 
-    @AssertTrue(message = "At least one of title or completed must not be null")
+    @AssertTrue(message = "At least one of title or completed or description must not be null")
     public boolean isValidRequest() {
-        return (title != null && !title.isBlank()) || completed != null;
+        return (description != null && !description.isBlank()) || (title != null && !title.isBlank()) || completed != null;
     }
 }

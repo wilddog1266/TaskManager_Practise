@@ -34,11 +34,12 @@ public class TaskController {
     public Page<TaskDto> getAll(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
                                 Pageable pageable,
                                 @RequestParam (required = false) Boolean completed,
-                                @RequestParam (required = false) String query) {
+                                @RequestParam (required = false) String title,
+                                @RequestParam (required = false) String description) {
 
         pageableValidator.validate(pageable);
 
-        return taskService.search(pageable, completed, query);
+        return taskService.search(pageable, completed, title, description);
     }
 
     @PostMapping("/tasks")

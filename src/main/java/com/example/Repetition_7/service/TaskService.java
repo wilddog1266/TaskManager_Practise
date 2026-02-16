@@ -7,9 +7,11 @@ import com.example.Repetition_7.mapper.TaskMapper;
 import com.example.Repetition_7.repository.TaskRepository;
 import com.example.Repetition_7.request.CreateTaskRequest;
 import com.example.Repetition_7.request.UpdateTaskRequest;
+import com.example.Repetition_7.specification.TaskSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -42,6 +44,10 @@ public class TaskService {
             taskEntity.setCompleted(request.getCompleted());
         }
 
+        if(request.getDescription() != null && !request.getDescription().trim().isEmpty()) {
+            taskEntity.setDescription(request.getDescription().trim());
+        }
+
         if(request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
             taskEntity.setTitle(request.getTitle().trim());
         }
@@ -60,21 +66,25 @@ public class TaskService {
         throw new TaskNotFoundException(id);
     }
 
-    public Page<TaskDto> search(Pageable pageable, Boolean completed, String query) {
-        String q = (query == null || query.trim().isEmpty()) ? null : query.trim();
+    public Page<TaskDto> search(Pageable pageable, Boolean completed, String query, String description) {
+        String q = (query == null || query.isBlank()) ? null : query.trim();
+        String d= (description == null || description.isBlank()) ? null : description.trim();
 
-        if(q == null && completed == null) {
+        Specification<TaskEntity> spec = null;
+
+        var byTitle = TaskSpecification.titleContains(q);
+        if (byTitle != null) spec = byTitle;
+
+        var byCompleted = TaskSpecification.hasCompleted(completed);
+        if (byCompleted != null) spec = (spec == null) ? byCompleted : spec.and(byCompleted);
+
+        var byDescription = TaskSpecification.descriptionContains(d);
+        if(byDescription != null) spec = (spec == null) ? byDescription : spec.and(byDescription);
+
+        if (spec == null) {
             return taskRepository.findAll(pageable).map(taskMapper::toDto);
         }
 
-        if(q != null && completed == null) {
-            return taskRepository.findByTitleContainingIgnoreCase(q, pageable).map(taskMapper::toDto);
-        }
-
-        if(q == null) {
-            return taskRepository.findByCompleted(completed, pageable).map(taskMapper::toDto);
-        }
-
-        return taskRepository.findByTitleContainingIgnoreCaseAndCompleted(q, completed, pageable).map(taskMapper::toDto);
+        return taskRepository.findAll(spec, pageable).map(taskMapper::toDto);
     }
 }
