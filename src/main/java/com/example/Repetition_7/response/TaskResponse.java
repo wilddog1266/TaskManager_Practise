@@ -1,4 +1,4 @@
-package com.example.Repetition_7.dto;
+package com.example.Repetition_7.response;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -7,7 +7,7 @@ import java.time.Instant;
 
 @Getter
 @Setter
-public class TaskDto {
+public class TaskResponse {
 
     private Long id;
 
@@ -20,4 +20,6 @@ public class TaskDto {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    private Long createdByUserId;
 }

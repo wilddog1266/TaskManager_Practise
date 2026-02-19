@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TaskRepository extends JpaRepository<TaskEntity, Long>, JpaSpecificationExecutor<TaskEntity> {
 
+    boolean existsByIdAndCreatedBy_Id(Long id, Long createdByUserId);
+
 }

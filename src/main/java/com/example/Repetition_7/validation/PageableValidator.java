@@ -10,7 +10,7 @@ public class PageableValidator {
 
     private static final int MAX_PAGE_SIZE = 50;
 
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "title", "completed");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "title", "completed", "createdAt", "updatedAt");
 
     public void validate(Pageable pageable) {
         if(pageable.getPageSize() > MAX_PAGE_SIZE) {

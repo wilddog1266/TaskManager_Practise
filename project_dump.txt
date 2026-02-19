@@ -75,7 +75,7 @@ public class TaskEntity {
 -e \n===== src/main/java/com/example/Repetition_7/controller/TaskController.java =====\n
 package com.example.Repetition_7.controller;
 
-import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.response.TaskResponse;
 import com.example.Repetition_7.request.CreateTaskRequest;
 import com.example.Repetition_7.request.UpdateTaskRequest;
 import com.example.Repetition_7.service.TaskService;
@@ -223,7 +223,7 @@ public class UpdateTaskRequest {
 -e \n===== src/main/java/com/example/Repetition_7/service/TaskService.java =====\n
 package com.example.Repetition_7.service;
 
-import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.response.TaskResponse;
 import com.example.Repetition_7.entity.TaskEntity;
 import com.example.Repetition_7.repository.TaskRepository;
 import com.example.Repetition_7.request.CreateTaskRequest;
@@ -303,13 +303,13 @@ public class TaskService {
     }
 
     private TaskDto toDto(TaskEntity e) {
-        TaskDto taskDto = new TaskDto();
+        TaskDto taskResponse = new TaskDto();
 
-        taskDto.setId(e.getId());
-        taskDto.setTitle(e.getTitle());
-        taskDto.setCompleted(e.getCompleted());
+        taskResponse.setId(e.getId());
+        taskResponse.setTitle(e.getTitle());
+        taskResponse.setCompleted(e.getCompleted());
 
-        return taskDto;
+        return taskResponse;
     }
 
     private TaskEntity toEntity(CreateTaskRequest r) {

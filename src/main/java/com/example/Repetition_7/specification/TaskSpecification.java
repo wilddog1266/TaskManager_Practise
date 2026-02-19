@@ -36,4 +36,11 @@ public final class TaskSpecification {
         return (root, queryObject, cb) ->
                 cb.like(cb.lower(root.get("title")), pattern);
     }
+
+    public static Specification<TaskEntity> createdByUserId(Long userId) {
+        if (userId == null) throw new IllegalArgumentException("User id must not be null");
+
+        return (root, query, cb) ->
+                cb.equal(root.get("createdBy").get("id"), userId);
+    }
 }

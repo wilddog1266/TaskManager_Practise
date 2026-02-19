@@ -1,24 +1,28 @@
 package com.example.Repetition_7.mapper;
 
-import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.response.TaskResponse;
 import com.example.Repetition_7.entity.TaskEntity;
 import com.example.Repetition_7.request.CreateTaskRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class TaskMapper {
 
-    public TaskDto toDto(TaskEntity e) {
-        TaskDto taskDto = new TaskDto();
+    public TaskResponse toResponse(TaskEntity e) {
+        TaskResponse taskResponse = new TaskResponse();
 
-        taskDto.setId(e.getId());
-        taskDto.setTitle(e.getTitle());
-        taskDto.setCompleted(e.isCompleted());
-        taskDto.setDescription(e.getDescription());
-        taskDto.setCreatedAt(e.getCreatedAt());
-        taskDto.setUpdatedAt(e.getUpdatedAt());
+        taskResponse.setId(e.getId());
+        taskResponse.setTitle(e.getTitle());
+        taskResponse.setCompleted(e.isCompleted());
+        taskResponse.setDescription(e.getDescription());
+        taskResponse.setCreatedAt(e.getCreatedAt());
+        taskResponse.setUpdatedAt(e.getUpdatedAt());
+        var createdBy = Objects.requireNonNull(e.getCreatedBy(), "Task.createdBy is null");
+        taskResponse.setCreatedByUserId(Objects.requireNonNull(createdBy.getId(), "Task.createdBy.id is null"));
 
-        return taskDto;
+        return taskResponse;
     }
 
     public TaskEntity toEntity(CreateTaskRequest r) {

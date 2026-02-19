@@ -1,6 +1,6 @@
 package com.example.Repetition_7.controller;
 
-import com.example.Repetition_7.dto.TaskDto;
+import com.example.Repetition_7.response.TaskResponse;
 import com.example.Repetition_7.request.CreateTaskRequest;
 import com.example.Repetition_7.request.UpdateTaskRequest;
 import com.example.Repetition_7.service.TaskService;
@@ -31,11 +31,11 @@ public class TaskController {
 
     @GetMapping("/tasks")
     @Operation(summary = "Search all tasks", description = "Search tasks with optional filters and pagination")
-    public Page<TaskDto> getAll(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
+    public Page<TaskResponse> getAll(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
                                 Pageable pageable,
-                                @RequestParam (required = false) Boolean completed,
-                                @RequestParam (required = false) String title,
-                                @RequestParam (required = false) String description) {
+                                     @RequestParam (required = false) Boolean completed,
+                                     @RequestParam (required = false) String title,
+                                     @RequestParam (required = false) String description) {
 
         pageableValidator.validate(pageable);
 
@@ -44,22 +44,22 @@ public class TaskController {
 
     @PostMapping("/tasks")
     @Operation(summary = "Create new task", description = "Create new task with title and completed status")
-    public ResponseEntity<TaskDto> createNewTask(@Valid @RequestBody CreateTaskRequest request) {
-        TaskDto created = taskService.create(request);
+    public ResponseEntity<TaskResponse> createNewTask(@Valid @RequestBody CreateTaskRequest request) {
+        TaskResponse created = taskService.create(request);
 
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @GetMapping("/tasks/{id}")
     @Operation(summary = "Get task by id", description = "Find task by id")
-    public ResponseEntity<TaskDto> getTaskById(@PathVariable @Min(1) Long id) {
+    public ResponseEntity<TaskResponse> getTaskById(@PathVariable @Min(1) Long id) {
 
         return ResponseEntity.ok(taskService.getById(id));
     }
 
     @PatchMapping("/tasks/{id}")
     @Operation(summary = "Update task", description = "Update completion status or/and title")
-    public ResponseEntity<TaskDto> updateTaskById(@PathVariable @Min(1) Long id, @Valid @RequestBody UpdateTaskRequest request) {
+    public ResponseEntity<TaskResponse> updateTaskById(@PathVariable @Min(1) Long id, @Valid @RequestBody UpdateTaskRequest request) {
 
         return ResponseEntity.ok(taskService.updateTask(id, request));
     }

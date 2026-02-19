@@ -27,3 +27,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/repetition7
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: strongpassword
+
+      APP_SECURITY_USERNAME: admin
+      APP_SECURITY_PASSWORD: strong
