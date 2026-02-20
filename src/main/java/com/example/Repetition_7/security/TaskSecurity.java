@@ -15,19 +15,15 @@ public class TaskSecurity {
     private final TaskRepository taskRepository;
 
     public boolean canAccessTask(Long taskId) {
-        if(taskId == null) return false;
-
-        if (!taskRepository.existsById(taskId)) {
-            return true;
-        }
+        if (taskId == null) return false;
 
         UserEntity currentUser = currentUserService.getCurrentUser();
+        if (currentUser.getRole() == UserRole.ADMIN) return true;
 
-        if(currentUser.getRole() == UserRole.ADMIN) {
-            return true;
-        }
+        boolean isOwner = taskRepository.existsByIdAndCreatedBy_Id(taskId, currentUser.getId());
+        if (isOwner) return true;
 
-        return taskRepository.existsByIdAndCreatedBy_Id(taskId, currentUser.getId());
+        return !taskRepository.existsById(taskId);
     }
 
     public boolean canModifyTask(Long taskId) {
