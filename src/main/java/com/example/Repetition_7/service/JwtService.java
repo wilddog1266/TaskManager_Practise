@@ -16,12 +16,15 @@ public class JwtService {
 
     private final SecretKey secretKey;
     private final long ttlMills;
+    private final String issuer;
 
     public JwtService(@Value("${app.jwt.secret}") String base64Secret,
-                      @Value("${app.jwt.access-ttl-minutes}") long ttlMinutes) {
+                      @Value("${app.jwt.access-ttl-minutes}") long ttlMinutes,
+                      @Value("${app.jwt.issuer}") String issuer) {
 
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(base64Secret));
         this.ttlMills = ttlMinutes * 60_000L;
+        this.issuer = issuer;
     }
 
     public String generateAccessToken(String username) {
@@ -30,6 +33,7 @@ public class JwtService {
                 .subject(username)
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + ttlMills))
+                .issuer(issuer)
                 .signWith(secretKey)
                 .compact();
     }
@@ -51,6 +55,7 @@ public class JwtService {
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

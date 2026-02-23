@@ -20,10 +20,7 @@ public class TaskSecurity {
         UserEntity currentUser = currentUserService.getCurrentUser();
         if (currentUser.getRole() == UserRole.ADMIN) return true;
 
-        boolean isOwner = taskRepository.existsByIdAndCreatedBy_Id(taskId, currentUser.getId());
-        if (isOwner) return true;
-
-        return !taskRepository.existsById(taskId);
+        return taskRepository.existsByIdAndCreatedBy_Id(taskId, currentUser.getId());
     }
 
     public boolean canModifyTask(Long taskId) {

@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,20 +35,16 @@ public class TaskService {
         return taskMapper.toResponse(saved);
     }
 
-    @PreAuthorize("@taskSecurity.canAccessTask(#id)")
     public TaskResponse getById(Long id) {
 
-        TaskEntity task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+        TaskEntity task = loadTaskVisibleForCurrentUser(id);
 
         return taskMapper.toResponse(task);
     }
 
-    @PreAuthorize("@taskSecurity.canModifyTask(#id)")
     public TaskResponse updateTask(Long id, UpdateTaskRequest request) {
 
-        TaskEntity taskEntity = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+        TaskEntity taskEntity = loadTaskVisibleForCurrentUser(id);
 
         if(request.getCompleted() != null) {
             taskEntity.setCompleted(request.getCompleted());
@@ -69,15 +63,13 @@ public class TaskService {
         return taskMapper.toResponse(saved);
     }
 
-    @PreAuthorize("@taskSecurity.canModifyTask(#id)")
     public void delete(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new TaskNotFoundException(id);
-        }
-        taskRepository.deleteById(id);
+        TaskEntity task = loadTaskVisibleForCurrentUser(id);
+
+        taskRepository.delete(task);
     }
 
-    public Page<TaskResponse> search(Pageable pageable, Boolean completed, String query, String description) {
+    public Page<TaskResponse> search(Pageable pageable, Boolean completed, String query, String description, Long createdByUserId) {
         UserEntity currentUser = currentUserService.getCurrentUser();
 
         String q = (query == null || query.isBlank()) ? null : query.trim();
@@ -85,7 +77,10 @@ public class TaskService {
 
         Specification<TaskEntity> spec = (root, queryObj, cb) -> cb.conjunction();
 
-        if (currentUser.getRole() != UserRole.ADMIN) {
+        if(currentUser.getRole() == UserRole.ADMIN) {
+            var byOwner = TaskSpecification.createdByUserIdOptional(createdByUserId);
+            if(byOwner != null) spec = spec.and(byOwner);
+        } else {
             spec = spec.and(TaskSpecification.createdByUserId(currentUser.getId()));
         }
 
@@ -99,5 +94,17 @@ public class TaskService {
         if (byDescription != null) spec = spec.and(byDescription);
 
         return taskRepository.findAll(spec, pageable).map(taskMapper::toResponse);
+    }
+
+    private TaskEntity loadTaskVisibleForCurrentUser(Long id) {
+        UserEntity u = currentUserService.getCurrentUser();
+
+        if(u.getRole() == UserRole.ADMIN) {
+            return taskRepository.findById(id)
+                    .orElseThrow(() -> new TaskNotFoundException(id));
+        }
+
+        return taskRepository.findByIdAndCreatedBy_Id(id, u.getId())
+                .orElseThrow(() -> new TaskNotFoundException(id));
     }
 }

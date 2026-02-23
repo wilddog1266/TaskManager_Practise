@@ -38,8 +38,18 @@ public final class TaskSpecification {
     }
 
     public static Specification<TaskEntity> createdByUserId(Long userId) {
-        if (userId == null) throw new IllegalArgumentException("User id must not be null");
+        if(userId == null) throw new IllegalArgumentException("User id must not be null");
 
+        return createdByUserIdSpec(userId);
+    }
+
+    public static Specification<TaskEntity> createdByUserIdOptional(Long userId) {
+        if(userId == null) return null;
+
+        return createdByUserIdSpec(userId);
+    }
+
+    private static Specification<TaskEntity> createdByUserIdSpec(Long userId) {
         return (root, query, cb) ->
                 cb.equal(root.get("createdBy").get("id"), userId);
     }

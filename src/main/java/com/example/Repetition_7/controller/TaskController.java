@@ -35,11 +35,12 @@ public class TaskController {
                                 Pageable pageable,
                                      @RequestParam (required = false) Boolean completed,
                                      @RequestParam (required = false) String title,
-                                     @RequestParam (required = false) String description) {
+                                     @RequestParam (required = false) String description,
+                                     @RequestParam (required = false) Long createdByUserId) {
 
         pageableValidator.validate(pageable);
 
-        return taskService.search(pageable, completed, title, description);
+        return taskService.search(pageable, completed, title, description, createdByUserId);
     }
 
     @PostMapping("/tasks")
