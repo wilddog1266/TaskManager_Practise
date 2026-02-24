@@ -1,5 +1,6 @@
 package com.example.Repetition_7.service;
 
+import com.example.Repetition_7.entity.UserEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -27,10 +28,12 @@ public class JwtService {
         this.issuer = issuer;
     }
 
-    public String generateAccessToken(String username) {
+    public String generateAccessToken(UserEntity user) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
-                .subject(username)
+                .subject(user.getUsername())
+                .claim("uid", user.getId())
+                .claim("role", user.getRole())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + ttlMills))
                 .issuer(issuer)
@@ -59,5 +62,17 @@ public class JwtService {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public String extractRole(String token) {
+        return parseClaims(token).get("role", String.class);
+    }
+
+    public Long extractUserId(String token) {
+        Object v = parseClaims(token).get("uid");
+        if(v instanceof Integer i) return i.longValue();
+        if(v instanceof Long l) return l;
+        if(v instanceof String str) return Long.parseLong(str);
+        throw new IllegalArgumentException("Invalid uid in token");
     }
 }

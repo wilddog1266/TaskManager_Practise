@@ -3,6 +3,7 @@ package com.example.Repetition_7.controller;
 import com.example.Repetition_7.request.CreateUserRequest;
 import com.example.Repetition_7.response.UserResponse;
 import com.example.Repetition_7.service.UserService;
+import com.example.Repetition_7.validation.UserPageableValidator;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,18 +19,20 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class UserController {
 
-    private final UserService userRegisterService;
+    private final UserService userService;
+    private final UserPageableValidator userPageableValidator;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerNewUser(@Valid @RequestBody CreateUserRequest request) {
-        UserResponse userResponse = userRegisterService.register(request);
+        UserResponse userResponse = userService.register(request);
 
         return new ResponseEntity<>(userResponse, HttpStatus.CREATED);
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
-        UserResponse currentUser = userRegisterService.getCurrentUser();
+        UserResponse currentUser = userService.getCurrentUser();
         return new ResponseEntity<>(currentUser, HttpStatus.OK);
     }
+
 }

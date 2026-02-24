@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 @Component
-public class PageableValidator {
+public class TaskPageableValidator {
 
     private static final int MAX_PAGE_SIZE = 50;
 

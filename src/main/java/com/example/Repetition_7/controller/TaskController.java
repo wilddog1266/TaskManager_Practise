@@ -4,7 +4,7 @@ import com.example.Repetition_7.response.TaskResponse;
 import com.example.Repetition_7.request.CreateTaskRequest;
 import com.example.Repetition_7.request.UpdateTaskRequest;
 import com.example.Repetition_7.service.TaskService;
-import com.example.Repetition_7.validation.PageableValidator;
+import com.example.Repetition_7.validation.TaskPageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class TaskController {
 
     private final TaskService taskService;
-    private final PageableValidator pageableValidator;
+    private final TaskPageableValidator pageableValidator;
 
     @GetMapping("/tasks")
     @Operation(summary = "Search all tasks", description = "Search tasks with optional filters and pagination")

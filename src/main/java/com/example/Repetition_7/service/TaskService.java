@@ -81,6 +81,7 @@ public class TaskService {
             var byOwner = TaskSpecification.createdByUserIdOptional(createdByUserId);
             if(byOwner != null) spec = spec.and(byOwner);
         } else {
+            if(createdByUserId != null) throw new IllegalArgumentException("createdByUserId is allowed for admin only");
             spec = spec.and(TaskSpecification.createdByUserId(currentUser.getId()));
         }
 
