@@ -1,6 +1,7 @@
 package com.example.Repetition_7.service;
 
 import com.example.Repetition_7.entity.UserEntity;
+import com.example.Repetition_7.entity.roles.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -28,12 +29,12 @@ public class JwtService {
         this.issuer = issuer;
     }
 
-    public String generateAccessToken(UserEntity user) {
+    public String generateAccessToken(Long userId, String username, UserRole role) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
-                .subject(user.getUsername())
-                .claim("uid", user.getId())
-                .claim("role", user.getRole())
+                .subject(username)
+                .claim("uid", userId)
+                .claim("role", role.name())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + ttlMills))
                 .issuer(issuer)

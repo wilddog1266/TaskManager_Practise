@@ -2,6 +2,8 @@ package com.example.Repetition_7.service;
 
 import com.example.Repetition_7.entity.RefreshTokenEntity;
 import com.example.Repetition_7.entity.UserEntity;
+import com.example.Repetition_7.entity.roles.UserRole;
+import com.example.Repetition_7.exception.InvalidRefreshTokenException;
 import com.example.Repetition_7.repository.RefreshTokenRepository;
 import com.example.Repetition_7.security.RefreshTokenCodec;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +46,40 @@ public class RefreshTokenService {
         return plain;
     }
 
+    @Transactional
+    public RotateResult rotate(String oldPlain) {
+        if(oldPlain == null || oldPlain.isBlank()) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        Instant now = Instant.now(clock);
+        String oldHash = refreshTokenCodec.hash(oldPlain);
+        RefreshTokenEntity token = refreshTokenRepository.findByTokenHash(oldHash)
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        if(!token.isActive(now)) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        UserEntity user = token.getUser();
+
+        String newPlain = refreshTokenCodec.generatePlain();
+        String newHash = refreshTokenCodec.hash(newPlain);
+
+        token.setRevokedAt(now);
+        token.setReplacedByTokenHash(newHash);
+
+        RefreshTokenEntity refreshToken = new RefreshTokenEntity();
+        refreshToken.setUser(user);
+        refreshToken.setTokenHash(newHash);
+        refreshToken.setCreatedAt(now);
+        refreshToken.setExpiresAt(now.plus(Duration.ofDays(refreshDays)));
+
+        refreshTokenRepository.save(token);
+        refreshTokenRepository.save(refreshToken);
+        return new RotateResult(user.getId(), user.getUsername(), user.getRole(), newPlain);
+    }
+
+    public record RotateResult(Long userId, String username, UserRole role, String newPlain) {}
 
 }
