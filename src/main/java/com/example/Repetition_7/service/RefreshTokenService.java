@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +45,22 @@ public class RefreshTokenService {
         refreshTokenRepository.save(refreshToken);
 
         return plain;
+    }
+
+    @Transactional
+    public void revoke(String oldPlain) {
+        if(oldPlain == null || oldPlain.isBlank()) {
+            return;
+        }
+
+        String oldHash = refreshTokenCodec.hash(oldPlain);
+        RefreshTokenEntity token = refreshTokenRepository.findByTokenHash(oldHash).orElse(null);
+
+        Instant now = Instant.now(clock);
+        if(token != null && token.isActive(now)) {
+            token.setRevokedAt(now);
+            refreshTokenRepository.save(token);
+        }
     }
 
     @Transactional

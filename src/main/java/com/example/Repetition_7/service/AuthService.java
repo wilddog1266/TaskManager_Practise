@@ -30,6 +30,13 @@ public class AuthService {
         return new LoginResult(accessToken, refreshTokenPlain);
     }
 
+    public void logout(String refreshPlain) {
+        if(refreshPlain == null || refreshPlain.isBlank()) {
+            return;
+        }
+        refreshTokenService.revoke(refreshPlain);
+    }
+
     public LoginResult refresh(String refreshPlain) {
         if(refreshPlain == null || refreshPlain.isBlank()) {
             throw new InvalidRefreshTokenException();
