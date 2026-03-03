@@ -18,6 +18,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @AutoConfigureMockMvc
 public class AuthFlowIT extends BaseIntegrationTest {
@@ -48,19 +49,53 @@ public class AuthFlowIT extends BaseIntegrationTest {
        AuthTokens tokens = doLogin(USERNAME, PASSWORD);
 
         assertThat(tokens.accessToken()).isNotBlank();
-        assertThat(tokens.refreshCookie()).isNotNull();
-        assertThat(tokens.refreshCookie().isHttpOnly()).isTrue();
+        assertThat(tokens.refreshTokenValue()).isNotNull();
+        assertThat(tokens.refreshTokenValue().contains("HttpOnly"));
     }
 
     @Test
     public void refresh_ShouldRotateRefreshCookie_andReturnNewAccessToken() throws Exception {
         AuthTokens first = doLogin(USERNAME, PASSWORD);
-        AuthTokens second = doRefresh(first.refreshCookie());
+        AuthTokens second = doRefresh(first.refreshTokenValue());
 
         assertThat(second.accessToken()).isNotBlank();
-        assertThat(second.refreshCookie()).isNotNull();
+        assertThat(second.refreshTokenValue()).isNotNull();
 
-        assertThat(second.refreshCookie().getValue()).isNotEqualTo(first.refreshCookie().getValue());
+        assertThat(second.refreshTokenValue()).isNotEqualTo(first.refreshTokenValue());
+    }
+
+    @Test
+    public void tasks_WithoutToken_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/tasks")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void tasks_WithUserToken_ShouldReturn200() throws Exception {
+        AuthTokens login = doLogin(USERNAME, PASSWORD);
+
+        mockMvc.perform(get("/api/tasks")
+                .header("Authorization", "Bearer " + login.accessToken())
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void adminUser_WithUserToken_ShouldReturn403() throws Exception {
+        AuthTokens login = doLogin(USERNAME, PASSWORD);
+
+        mockMvc.perform(get("/api/admin/users")
+                .header("Authorization", "Bearer " + login.accessToken())
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    private MvcResult doGetWithBearer(String url, String accessToken) throws Exception {
+        return mockMvc.perform(get(url)
+                .header("Authorization", "Bearer " + accessToken)
+                .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
     }
 
     private AuthTokens doLogin(String username, String password) throws Exception {
@@ -73,28 +108,43 @@ public class AuthFlowIT extends BaseIntegrationTest {
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
-        Cookie refresh = result.getResponse().getCookie("refreshToken");
 
-        if(refresh.getValue().isBlank() || !refresh.getPath().equals("/api/auth")) {
-            throw new AssertionError("Invalid refresh token cookie: " + refresh);
+        String setCookie = result.getResponse().getHeader("Set-Cookie");
+        if(setCookie == null) {
+            throw new AssertionError("Set-Cookie header is missing");
+        }
+        if(!setCookie.contains("HttpOnly")) {
+            throw new AssertionError("refreshToken cookie must be HttpOnly: " + setCookie);
+        }
+        if(!setCookie.contains("Path=/api/auth")) {
+            throw new AssertionError("refreshToken cookie path must be /api/auth: " + setCookie);
         }
 
+        String refreshValue = extractCookieValue(setCookie, "refreshToken");
         String access = extractAccessToken(responseBody);
 
-        return new AuthTokens(access, refresh);
+        return new AuthTokens(access, refreshValue, setCookie);
     }
 
-    private AuthTokens doRefresh(Cookie refreshCookie) throws Exception {
+    private AuthTokens doRefresh(String refreshTokenValue) throws Exception {
+        Cookie cookie = new Cookie("refreshToken", refreshTokenValue);
+        cookie.setPath("/api/auth");
+
         MvcResult result = mockMvc.perform(post("/api/auth/refresh")
-                .cookie(refreshCookie))
+                .cookie(cookie))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Set-Cookie", containsString("refreshToken=")))
                 .andReturn();
 
-        Cookie newRefresh = result.getResponse().getCookie("refreshToken");
+        String setCookie = result.getResponse().getHeader("Set-Cookie");
+        if(setCookie == null) {
+            throw new AssertionError("Set-Cookie header is missing on refresh");
+        }
+
+        String newRefreshValue = extractCookieValue(setCookie, "refreshToken");
         String newAccess = extractAccessToken(result.getResponse().getContentAsString());
 
-        return new AuthTokens(newAccess, newRefresh);
+        return new AuthTokens(newAccess, newRefreshValue, setCookie);
     }
 
     private String extractAccessToken(String responseBody) {
@@ -113,6 +163,24 @@ public class AuthFlowIT extends BaseIntegrationTest {
         return responseBody.substring(start, end);
     }
 
-    private record AuthTokens(String accessToken, Cookie refreshCookie) {}
+    private String extractCookieValue(String setCookie, String cookieName) {
+        String prefix = cookieName + "=";
+        int start = setCookie.indexOf(prefix);
+        if (start == -1) {
+            throw new AssertionError(cookieName + " not found in Set-Cookie: " + setCookie);
+        }
+        start += prefix.length();
+
+        int end = setCookie.indexOf(';', start);
+        if (end == -1) end = setCookie.length();
+
+        String value = setCookie.substring(start, end);
+        if (value.isBlank()) {
+            throw new AssertionError(cookieName + " value is blank in Set-Cookie: " + setCookie);
+        }
+        return value;
+    }
+
+    private record AuthTokens(String accessToken, String refreshTokenValue, String setCookie) {}
 
 }
